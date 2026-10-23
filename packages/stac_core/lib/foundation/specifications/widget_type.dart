@@ -148,6 +148,9 @@ enum WidgetType {
   /// Intrinsic width widget
   intrinsicWidth,
 
+  /// Lazily built data grid (items + itemTemplate); no per-item Stac model.
+  lazyGrid,
+
   /// Limited box widget
   limitedBox,
 

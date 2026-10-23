@@ -1,6 +1,7 @@
 name: stac
 description: Stac is a Server-Driven UI (SDUI) framework for Flutter. This fork renders with the official standalone material_ui package.
 version: 1.6.0
+publish_to: 'none'
 repository: https://github.com/hjdhnx/stac
 homepage: https://stac.dev/
 
@@ -27,7 +28,11 @@ dependencies:
   cached_network_image: ^4.0.0
   flutter_svg: ^2.3.0
   stac_logger: ^1.1.0
-  stac_core: ^1.6.0
+  # Monorepo-local: this fork adds lazyGrid to stac_core, so the published
+  # ^1.6.0 constraint would silently drop it. Path deps inside a git
+  # dependency resolve relative to this package.
+  stac_core:
+    path: ../stac_core
   shared_preferences: ^2.5.5
 
 dev_dependencies:
