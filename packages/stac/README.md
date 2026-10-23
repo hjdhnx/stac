@@ -20,6 +20,29 @@
   <a href="https://github.com/StacDev/stac">GitHub</a>
 </p>
 
+
+> **Fork notice — official standalone `material_ui` build**
+>
+> This fork renders with Flutter's official standalone
+> [`material_ui`](https://pub.dev/packages/material_ui) package instead of the
+> SDK-embedded `package:flutter/material.dart`. It requires **Flutter ≥ 3.47**
+> (the release where Material was split out of the SDK).
+>
+> Consume it from this repository:
+>
+> ```yaml
+> dependencies:
+>   stac:
+>     git:
+>       url: https://github.com/hjdhnx/stac
+>       path: packages/stac
+>       ref: main
+>   material_ui: ^1.8.0
+> ```
+>
+> Only import lines were changed (229 `flutter/material` → `material_ui`,
+> 7 `flutter/cupertino` → `cupertino_ui`); parsing/rendering logic is untouched.
+
 # Stac
 
 **Stac** is a **Server-Driven UI (SDUI) framework for Flutter**. It lets you build and update your app's UI on the fly, without waiting for app store reviews!

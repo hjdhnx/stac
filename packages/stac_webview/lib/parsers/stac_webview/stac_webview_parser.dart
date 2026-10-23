@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:stac_framework/stac_framework.dart';
 import 'package:stac_webview/parsers/stac_webview/stac_webview.dart';
 import 'package:webview_flutter/webview_flutter.dart';

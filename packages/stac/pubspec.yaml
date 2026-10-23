@@ -1,12 +1,12 @@
 name: stac
-description: Stac is a Server-Driven UI (SDUI) framework for Flutter. Stac allows you to build beautiful cross-platform applications with JSON in real time.
+description: Stac is a Server-Driven UI (SDUI) framework for Flutter. This fork renders with the official standalone material_ui package.
 version: 1.6.0
-repository: https://github.com/StacDev/stac
+repository: https://github.com/hjdhnx/stac
 homepage: https://stac.dev/
 
 environment:
-  sdk: ^3.12.0
-  flutter: ">=3.44.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 topics:
   - ui
@@ -17,6 +17,9 @@ topics:
 dependencies:
   flutter:
     sdk: flutter
+  # Official standalone Material / Cupertino packages (split out of the SDK).
+  material_ui: ^1.8.0
+  cupertino_ui: ^1.1.4
   json_annotation: ^4.12.0
   flutter_validators: ^1.2.0
   dio: ^5.11.1

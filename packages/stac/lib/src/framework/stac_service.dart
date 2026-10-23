@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide ErrorWidgetBuilder;
+import 'package:material_ui/material_ui.dart' hide ErrorWidgetBuilder;
 import 'package:flutter/services.dart';
 import 'package:stac/src/framework/stac.dart';
 import 'package:stac/src/framework/stac_error.dart';
