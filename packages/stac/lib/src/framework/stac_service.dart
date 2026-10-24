@@ -242,7 +242,7 @@ class StacService {
           : resolveVariablesInJson(json, StacRegistry.instance);
 
       final model = stacParser.getModel(resolvedJson);
-      return stacParser.parse(context, model);
+      return _wrapWithAutomationId(stacParser.parse(context, model), resolvedJson);
     } catch (e, stackTrace) {
       // Log error with full context
       _logError(
@@ -299,7 +299,7 @@ class StacService {
           : resolveVariablesInJson(widget.toJson(), StacRegistry.instance);
 
       final model = stacParser.getModel(resolvedJson);
-      return stacParser.parse(context, model);
+      return _wrapWithAutomationId(stacParser.parse(context, model), resolvedJson);
     } catch (e, stackTrace) {
       _logError(
         category: 'Widget Parse Error',
@@ -474,6 +474,30 @@ class StacService {
         return const SizedBox();
       },
     );
+  }
+
+  /// 给解析出的 widget 套一层 `Semantics(identifier:)`，让 UI 自动化能按 id
+  /// 精确命中控件，而不是靠文字猜坐标。
+  ///
+  /// **为什么放在这里**：`fromJson` / `fromStacWidget` 是**所有** widget 解析
+  /// 的唯一汇聚点。放在这里 = 每个控件自动获得能力，各 parser 无需改动，
+  /// 协议也不用加新字段 —— JSON 里写 `"aid": "home.banner"` 即可。
+  ///
+  /// **为什么用 `Semantics.identifier` 而不是 `Key`**：`Key` 只活在 Flutter
+  /// 的 widget 树里，`uiautomator dump` 看不到；`identifier` 会映射成
+  /// Android 无障碍节点的 `resource-id`，`adb shell uiautomator` 和
+  /// Appium / Maestro 都能直接按 id 定位。
+  ///
+  /// **安全影响为零**：它只是给已有控件加一个可读标签，不改变可见性、
+  /// 不改变点击行为、不引入任何数据通道。因此 release 构建也保留 ——
+  /// 自动化验收需要它在正式包上可用。
+  ///
+  /// 没写 `aid` 的 widget 原样返回，不产生额外 widget 层级。
+  static Widget? _wrapWithAutomationId(Widget? child, Map<String, dynamic> json) {
+    if (child == null) return null;
+    final aid = json['aid'];
+    if (aid is! String || aid.isEmpty) return child;
+    return Semantics(identifier: aid, container: false, child: child);
   }
 
   /// Centralized error logging with consistent formatting.
