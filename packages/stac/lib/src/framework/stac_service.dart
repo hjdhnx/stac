@@ -485,8 +485,15 @@ class StacService {
   ///
   /// **为什么用 `Semantics.identifier` 而不是 `Key`**：`Key` 只活在 Flutter
   /// 的 widget 树里，`uiautomator dump` 看不到；`identifier` 会映射成
-  /// Android 无障碍节点的 `resource-id`，`adb shell uiautomator` 和
-  /// Appium / Maestro 都能直接按 id 定位。
+  /// Android 无障碍节点的 `resource-id`（`AccessibilityNodeInfo.setViewIdResourceName`），
+  /// `adb shell uiautomator`、Appium、Maestro 都能直接按 id 定位。
+  ///
+  /// **为什么 `container: true`**：实测踩过。`container: false` 时 Semantics
+  /// 会把属性**合并进子树**的语义节点；而一个可点区域下面通常有多个
+  /// 语义节点（图标 + 多段文字），合并时 `identifier` 会丢失 ——
+  /// 真机上表现为 `uiautomator dump` 里 `resource-id` 全空。
+  /// `container: true` 会为这个可点区域建一个明确节点，identifier 落在它上面，
+  /// 语义上也更准确（一个按钮 = 一个节点，而不是把按钮拆成几段文字）。
   ///
   /// **安全影响为零**：它只是给已有控件加一个可读标签，不改变可见性、
   /// 不改变点击行为、不引入任何数据通道。因此 release 构建也保留 ——
@@ -497,7 +504,7 @@ class StacService {
     if (child == null) return null;
     final aid = json['aid'];
     if (aid is! String || aid.isEmpty) return child;
-    return Semantics(identifier: aid, container: false, child: child);
+    return Semantics(identifier: aid, container: true, child: child);
   }
 
   /// Centralized error logging with consistent formatting.
