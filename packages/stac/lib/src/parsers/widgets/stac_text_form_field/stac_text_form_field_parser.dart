@@ -72,8 +72,9 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
     _lastClearValue = widget.model.clearValue;
   }
 
-  /// clearValue 变化检测（DaoBox 聊天输入「发送后清空」）：
-  /// token 与上次构建不同 → 控制器清空一次并同步 formScope。
+  /// clearValue 重置令牌（DaoBox：聊天输入「发送后清空」/ 编辑器「切 tab
+  /// 换文件」）：token 与上次构建不同 → 控制器重置为当前 initialValue 一次
+  /// 并同步 formScope（initialValue='' 即清空语义）。
   String? _lastClearValue;
 
   @override
@@ -82,9 +83,9 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
     final cur = widget.model.clearValue;
     if (cur != null && cur != _lastClearValue) {
       _lastClearValue = cur;
-      _controller.clear();
+      _controller.text = widget.model.initialValue ?? '';
       final id = widget.model.id;
-      if (id != null) widget.formScope?.formData[id] = '';
+      if (id != null) widget.formScope?.formData[id] = _controller.text;
     }
   }
 
