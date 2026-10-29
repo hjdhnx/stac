@@ -16,6 +16,7 @@ StacTextFormField _$StacTextFormFieldFromJson(
           json['decoration'] as Map<String, dynamic>,
         ),
   initialValue: json['initialValue'] as String?,
+  clearValue: json['clearValue'] as String?,
   keyboardType: $enumDecodeNullable(
     _$StacTextInputTypeEnumMap,
     json['keyboardType'],
@@ -88,6 +89,7 @@ Map<String, dynamic> _$StacTextFormFieldToJson(
   'id': instance.id,
   'decoration': instance.decoration?.toJson(),
   'initialValue': instance.initialValue,
+  'clearValue': instance.clearValue,
   'keyboardType': _$StacTextInputTypeEnumMap[instance.keyboardType],
   'textInputAction': _$StacTextInputActionEnumMap[instance.textInputAction],
   'textCapitalization':

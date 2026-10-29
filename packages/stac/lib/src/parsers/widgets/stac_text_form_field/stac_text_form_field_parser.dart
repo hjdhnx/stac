@@ -69,6 +69,23 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
     }
 
     _controller = TextEditingController(text: resolvedText);
+    _lastClearValue = widget.model.clearValue;
+  }
+
+  /// clearValue 变化检测（DaoBox 聊天输入「发送后清空」）：
+  /// token 与上次构建不同 → 控制器清空一次并同步 formScope。
+  String? _lastClearValue;
+
+  @override
+  void didUpdateWidget(covariant _TextFormFieldWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final cur = widget.model.clearValue;
+    if (cur != null && cur != _lastClearValue) {
+      _lastClearValue = cur;
+      _controller.clear();
+      final id = widget.model.id;
+      if (id != null) widget.formScope?.formData[id] = '';
+    }
   }
 
   @override

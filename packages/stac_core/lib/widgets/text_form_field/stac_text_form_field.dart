@@ -46,6 +46,7 @@ class StacTextFormField extends StacWidget {
     this.id,
     this.decoration,
     this.initialValue,
+    this.clearValue,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization,
@@ -87,6 +88,11 @@ class StacTextFormField extends StacWidget {
 
   /// Initial text to display in the field.
   final String? initialValue;
+
+  /// Change-detection token for programmatic clearing (DaoBox chat input):
+  /// when the parsed value differs from the previous build, the field's
+  /// controller is cleared once. Absent/null = never auto-clear.
+  final String? clearValue;
 
   /// Keyboard configuration.
   final StacTextInputType? keyboardType;
