@@ -22,6 +22,7 @@ StacListView _$StacListViewFromJson(Map<String, dynamic> json) => StacListView(
   addRepaintBoundaries: json['addRepaintBoundaries'] as bool?,
   addSemanticIndexes: json['addSemanticIndexes'] as bool?,
   cacheExtent: const DoubleConverter().fromJson(json['cacheExtent']),
+  initialScrollOffset: const DoubleConverter().fromJson(json['initialScrollOffset']),
   children: (json['children'] as List<dynamic>?)
       ?.map((e) => StacWidget.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -53,6 +54,7 @@ Map<String, dynamic> _$StacListViewToJson(StacListView instance) =>
       'addRepaintBoundaries': instance.addRepaintBoundaries,
       'addSemanticIndexes': instance.addSemanticIndexes,
       'cacheExtent': const DoubleConverter().toJson(instance.cacheExtent),
+      'initialScrollOffset': const DoubleConverter().toJson(instance.initialScrollOffset),
       'children': instance.children?.map((e) => e.toJson()).toList(),
       'separator': instance.separator?.toJson(),
       'semanticChildCount': instance.semanticChildCount,

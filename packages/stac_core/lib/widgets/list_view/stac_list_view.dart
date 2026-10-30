@@ -55,6 +55,7 @@ class StacListView extends StacWidget {
     this.addRepaintBoundaries,
     this.addSemanticIndexes,
     this.cacheExtent,
+    this.initialScrollOffset,
     this.children,
     this.separator,
     this.semanticChildCount,
@@ -96,6 +97,14 @@ class StacListView extends StacWidget {
   /// The cache extent of the ListView.
   @DoubleConverter()
   final double? cacheExtent;
+
+  /// 初始滚动偏移（逻辑像素）。null = 从 0 开始。
+  ///
+  /// 用途：「当前选中项在第 N 个，但列表只显示前 8 个」这类场景（主题色
+  /// 色带、消息列表定位）。DaoBox 的 profile 色带靠它在首帧就把选中色点
+  /// 滚进视口，否则选中项在屏幕外，用户看到的是「点了没勾上」。
+  @DoubleConverter()
+  final double? initialScrollOffset;
 
   /// The StacWidgets to display in the list.
   final List<StacWidget>? children;

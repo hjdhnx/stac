@@ -25,11 +25,27 @@ class StacListViewParser extends StacParser<StacListView> {
 
   @override
   Widget parse(BuildContext context, StacListView model) {
+    // 初始偏移：需要一个**跨帧存活的** ScrollController（在 build 里 new 一个
+    // 会每次重建都回到起点，且永不 dispose），所以套一层 StatefulWidget。
+    if (controller == null && model.initialScrollOffset != null) {
+      return _InitialOffsetList(
+        offset: model.initialScrollOffset!,
+        builder: (c) => _buildList(context, model, c),
+      );
+    }
+    return _buildList(context, model, controller);
+  }
+
+  Widget _buildList(
+    BuildContext context,
+    StacListView model,
+    ScrollController? controller,
+  ) {
     return ListView.separated(
       scrollDirection: model.scrollDirection?.parse ?? Axis.vertical,
       reverse: model.reverse ?? false,
       controller: controller,
-      primary: model.primary,
+      primary: controller == null ? model.primary : false,
       physics: model.physics?.parse,
       shrinkWrap: model.shrinkWrap ?? false,
       padding: model.padding?.parse,
@@ -64,4 +80,44 @@ class StacListViewParser extends StacParser<StacListView> {
       ),
     );
   }
+}
+
+/// 带初始偏移的列表：控制器必须跨帧存活（在 build 里 new 会每帧回到起点，
+/// 且没有机会 dispose）。
+class _InitialOffsetList extends StatefulWidget {
+  const _InitialOffsetList({required this.offset, required this.builder});
+
+  final double offset;
+  final Widget Function(ScrollController controller) builder;
+
+  @override
+  State<_InitialOffsetList> createState() => _InitialOffsetListState();
+}
+
+class _InitialOffsetListState extends State<_InitialOffsetList> {
+  late ScrollController _controller = ScrollController(
+    initialScrollOffset: widget.offset,
+  );
+
+  @override
+  void didUpdateWidget(_InitialOffsetList old) {
+    super.didUpdateWidget(old);
+    // 偏移变了（换了选中项）→ 平滑滚到新位置；控制器本身复用，scroll 位置不丢。
+    if (old.offset != widget.offset && _controller.hasClients) {
+      _controller.animateTo(
+        widget.offset.clamp(0.0, _controller.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_controller);
 }
