@@ -44,6 +44,7 @@ export 'hero/stac_hero.dart';
 export 'icon/stac_icon.dart';
 export 'icon/stac_icons.dart';
 export 'icon_button/stac_icon_button.dart';
+export 'image/pic_url.dart';
 export 'image/stac_image.dart';
 export 'ink_well/stac_ink_well.dart';
 export 'intrinsic_height/stac_intrinsic_height.dart';

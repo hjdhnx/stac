@@ -29,9 +29,12 @@ class StacImageParser extends StacParser<StacImage> {
   }
 
   Widget _networkImage(StacImage model, BuildContext context) {
-    if (model.src.contains(".svg")) {
+    final pic = splitPicHeaders(model.src);
+    // JSON 里显式写的 headers 优先（未来皮肤/调试可用），否则用 URL 内嵌的
+    final headers = model.headers ?? pic.headers;
+    if (pic.url.contains(".svg")) {
       return SvgPicture.network(
-        model.src,
+        pic.url,
         alignment: model.alignment?.parse ?? Alignment.center,
         colorFilter: model.color != null
             ? ColorFilter.mode(model.color.toColor(context)!, BlendMode.srcIn)
@@ -39,18 +42,20 @@ class StacImageParser extends StacParser<StacImage> {
         width: model.width,
         height: model.height,
         fit: model.fit?.parse ?? BoxFit.contain,
+        headers: headers,
         errorBuilder: (context, error, stackTrace) {
           return const SizedBox();
         },
       );
     } else {
       return CachedNetworkImage(
-        imageUrl: model.src,
+        imageUrl: pic.url,
         alignment: model.alignment?.parse ?? Alignment.center,
         color: model.color?.toColor(context),
         width: model.width,
         height: model.height,
         fit: model.fit?.parse ?? BoxFit.contain,
+        httpHeaders: headers,
         errorWidget: (context, error, stackTrace) {
           return const SizedBox();
         },

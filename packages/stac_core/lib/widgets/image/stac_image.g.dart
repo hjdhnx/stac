@@ -21,6 +21,9 @@ StacImage _$StacImageFromJson(Map<String, dynamic> json) => StacImage(
   ),
   semanticLabel: json['semanticLabel'] as String?,
   excludeFromSemantics: json['excludeFromSemantics'] as bool?,
+  headers: (json['headers'] as Map<String, dynamic>?)?.map(
+    (k, e) => MapEntry(k, e as String),
+  ),
 );
 
 Map<String, dynamic> _$StacImageToJson(StacImage instance) => <String, dynamic>{
@@ -35,6 +38,7 @@ Map<String, dynamic> _$StacImageToJson(StacImage instance) => <String, dynamic>{
   'filterQuality': _$StacFilterQualityEnumMap[instance.filterQuality],
   'semanticLabel': instance.semanticLabel,
   'excludeFromSemantics': instance.excludeFromSemantics,
+  'headers': instance.headers,
   'type': instance.type,
 };
 

@@ -49,6 +49,7 @@ class StacImage extends StacWidget {
     this.filterQuality,
     this.semanticLabel,
     this.excludeFromSemantics,
+    this.headers,
   });
 
   /// Creates an image widget that loads from application assets.
@@ -63,6 +64,7 @@ class StacImage extends StacWidget {
     this.filterQuality,
     this.semanticLabel,
     this.excludeFromSemantics,
+    this.headers,
   }) : src = path,
        imageType = StacImageType.asset;
 
@@ -78,6 +80,7 @@ class StacImage extends StacWidget {
     this.filterQuality,
     this.semanticLabel,
     this.excludeFromSemantics,
+    this.headers,
   }) : src = url,
        imageType = StacImageType.network;
 
@@ -93,6 +96,7 @@ class StacImage extends StacWidget {
     this.filterQuality,
     this.semanticLabel,
     this.excludeFromSemantics,
+    this.headers,
   }) : src = path,
        imageType = StacImageType.file;
 
@@ -130,6 +134,12 @@ class StacImage extends StacWidget {
 
   /// Whether to exclude this image from semantics.
   final bool? excludeFromSemantics;
+
+  /// Extra HTTP headers for network images (anti-hotlink: Referer/User-Agent).
+  ///
+  /// 由 JS 侧 `image()` 从 URL 尾缀 `@Referer=…@User-Agent=…` 剥出来后传入；
+  /// 图片走 `CachedNetworkImage(httpHeaders:)`。空/null 表示不带额外头。
+  final Map<String, String>? headers;
 
   @override
   String get type => WidgetType.image.name;
