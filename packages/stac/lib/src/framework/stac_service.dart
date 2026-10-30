@@ -16,6 +16,7 @@ import 'package:stac/src/parsers/parsers.dart';
 import 'package:stac/src/parsers/widgets/stac_app_bar/stac_app_bar_parser.dart';
 import 'package:stac/src/parsers/widgets/stac_inkwell/stac_inkwell_parser.dart';
 import 'package:stac/src/parsers/widgets/stac_row/stac_row_parser.dart';
+import 'package:stac/src/parsers/widgets/stac_marquee_text/stac_marquee_text_parser.dart';
 import 'package:stac/src/parsers/widgets/stac_text/stac_text_parser.dart';
 import 'package:stac/src/parsers/widgets/stac_tool_tip/stac_tool_tip_parser.dart';
 import 'package:stac/src/services/stac_network_service.dart';
@@ -50,6 +51,7 @@ class StacService {
   static final _parsers = <StacParser>[
     const StacContainerParser(),
     const StacTextParser(),
+    const StacMarqueeTextParser(),
     const StacTextFieldParser(),
     const StacElevatedButtonParser(),
     const StacImageParser(),

@@ -57,6 +57,7 @@ export 'list_view/stac_list_view.dart';
 export 'navigation_bar/stac_navigation_bar.dart';
 export 'navigation_view/stac_navigation_view.dart';
 export 'network_widget/stac_network_widget.dart';
+export 'marquee_text/stac_marquee_text.dart';
 export 'opacity/stac_opacity.dart';
 export 'outlined_button/stac_outlined_button.dart';
 export 'padding/stac_padding.dart';
