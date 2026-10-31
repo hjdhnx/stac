@@ -104,6 +104,9 @@ class StacGestureDetector extends StacWidget {
     this.onHorizontalDragUpdate,
     this.onHorizontalDragEnd,
     this.onHorizontalDragCancel,
+    this.onSwipe,
+    this.swipeMinDistance,
+    this.swipeMinVelocity,
     this.onForcePressStart,
     this.onForcePressPeak,
     this.onForcePressUpdate,
@@ -267,6 +270,23 @@ class StacGestureDetector extends StacWidget {
 
   /// An action to perform when the pointer that previously triggered [onHorizontalDragDown] did not complete.
   final StacAction? onHorizontalDragCancel;
+
+  // --- Swipe (horizontal drag with delta) ---
+  /// An action to perform when a horizontal drag ends and passes the
+  /// displacement OR velocity threshold.
+  ///
+  /// The dispatched action's `args` is merged with `dx` (cumulative horizontal
+  /// displacement in logical pixels, negative = leftwards) and `velocity`
+  /// (px/s from [DragEndDetails.primaryVelocity]). Directional semantics are
+  /// intentionally left to the caller.
+  final StacAction? onSwipe;
+
+  /// Minimum |dx| in logical pixels to accept a swipe. Defaults to 60.
+  final double? swipeMinDistance;
+
+  /// Minimum |velocity| in px/s to accept a swipe even if the displacement is
+  /// short (a quick flick). Defaults to 250.
+  final double? swipeMinVelocity;
 
   // --- Force Press Callbacks (Note: Force touch is deprecated on iOS) ---
   /// An action to perform when a pointer has contacted the screen and has exerted a pressure sufficient to initiate a force press.

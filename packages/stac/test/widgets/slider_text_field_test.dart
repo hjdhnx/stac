@@ -7,7 +7,6 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:stac/src/parsers/widgets/stac_form/stac_form_scope.dart';
 import 'package:stac/stac.dart';
 
 /// 记录动作调用次数的探针（stac 单测不依赖 DaoBox 的 js.call）。

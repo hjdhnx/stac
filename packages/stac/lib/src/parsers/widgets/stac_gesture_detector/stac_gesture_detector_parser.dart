@@ -7,6 +7,10 @@ import 'package:stac/src/parsers/foundation/interaction/stac_hit_test_behavior_p
 import 'package:stac_core/stac_core.dart';
 import 'package:stac_framework/stac_framework.dart';
 
+/// Defaults for [StacGestureDetector.onSwipe] acceptance thresholds.
+const double kStacSwipeMinDistance = 60;
+const double kStacSwipeMinVelocity = 250;
+
 class StacGestureDetectorParser extends StacParser<StacGestureDetector> {
   const StacGestureDetectorParser();
 
@@ -19,6 +23,20 @@ class StacGestureDetectorParser extends StacParser<StacGestureDetector> {
 
   @override
   Widget parse(BuildContext context, StacGestureDetector model) {
+    // `onSwipe` needs horizontal drag accumulation across the gesture, so it
+    // gets a stateful wrapper; plain detectors stay allocation-free.
+    if (model.onSwipe == null) return _build(context, model);
+    return _SwipeGestureDetector(model: model);
+  }
+
+  static Widget _build(
+    BuildContext context,
+    StacGestureDetector model, {
+    void Function(DragStartDetails)? dragStart,
+    void Function(DragUpdateDetails)? dragUpdate,
+    void Function(DragEndDetails)? dragEnd,
+    VoidCallback? dragCancel,
+  }) {
     return GestureDetector(
       onTapDown: model.onTapDown != null
           ? (_) => model.onTapDown!.parse(context)
@@ -142,18 +160,36 @@ class StacGestureDetectorParser extends StacParser<StacGestureDetector> {
       onHorizontalDragDown: model.onHorizontalDragDown != null
           ? (_) => model.onHorizontalDragDown!.parse(context)
           : null,
-      onHorizontalDragStart: model.onHorizontalDragStart != null
-          ? (_) => model.onHorizontalDragStart!.parse(context)
-          : null,
-      onHorizontalDragUpdate: model.onHorizontalDragUpdate != null
-          ? (_) => model.onHorizontalDragUpdate!.parse(context)
-          : null,
-      onHorizontalDragEnd: model.onHorizontalDragEnd != null
-          ? (_) => model.onHorizontalDragEnd!.parse(context)
-          : null,
-      onHorizontalDragCancel: model.onHorizontalDragCancel != null
-          ? () => model.onHorizontalDragCancel!.parse(context)
-          : null,
+      // Only register a horizontal recognizer when something consumes it —
+      // an unconditional recognizer would compete with scrollables in the
+      // gesture arena for plain detectors.
+      onHorizontalDragStart:
+          model.onHorizontalDragStart == null && dragStart == null
+          ? null
+          : (details) {
+              dragStart?.call(details);
+              model.onHorizontalDragStart?.parse(context);
+            },
+      onHorizontalDragUpdate:
+          model.onHorizontalDragUpdate == null && dragUpdate == null
+          ? null
+          : (details) {
+              dragUpdate?.call(details);
+              model.onHorizontalDragUpdate?.parse(context);
+            },
+      onHorizontalDragEnd: model.onHorizontalDragEnd == null && dragEnd == null
+          ? null
+          : (details) {
+              dragEnd?.call(details);
+              model.onHorizontalDragEnd?.parse(context);
+            },
+      onHorizontalDragCancel:
+          model.onHorizontalDragCancel == null && dragCancel == null
+          ? null
+          : () {
+              dragCancel?.call();
+              model.onHorizontalDragCancel?.parse(context);
+            },
       onForcePressStart: model.onForcePressStart != null
           ? (_) => model.onForcePressStart!.parse(context)
           : null,
@@ -195,6 +231,56 @@ class StacGestureDetectorParser extends StacParser<StacGestureDetector> {
       dragStartBehavior:
           model.dragStartBehavior?.parse ?? DragStartBehavior.start,
       child: model.child.parse(context),
+    );
+  }
+}
+
+/// Accumulates horizontal displacement and dispatches `onSwipe` when either
+/// threshold is met. Direction lives in `dx`'s sign, so the action itself stays
+/// business-agnostic.
+class _SwipeGestureDetector extends StatefulWidget {
+  const _SwipeGestureDetector({required this.model});
+
+  final StacGestureDetector model;
+
+  @override
+  State<_SwipeGestureDetector> createState() => _SwipeGestureDetectorState();
+}
+
+class _SwipeGestureDetectorState extends State<_SwipeGestureDetector> {
+  double _dx = 0;
+
+  void _reset(DragStartDetails _) => _dx = 0;
+
+  void _accumulate(DragUpdateDetails details) => _dx += details.delta.dx;
+
+  void _settle(DragEndDetails details, BuildContext context) {
+    final model = widget.model;
+    final dx = _dx;
+    final velocity = details.primaryVelocity ?? 0;
+    _dx = 0;
+    final minDistance = model.swipeMinDistance ?? kStacSwipeMinDistance;
+    final minVelocity = model.swipeMinVelocity ?? kStacSwipeMinVelocity;
+    if (dx.abs() < minDistance && velocity.abs() < minVelocity) return;
+    final json = model.onSwipe!.toJson();
+    final rawArgs = json['args'];
+    final args = <String, dynamic>{
+      if (rawArgs is Map) ...Map<String, dynamic>.from(rawArgs),
+      'dx': dx,
+      'velocity': velocity,
+    };
+    StacAction(jsonData: {...json, 'args': args}).parse(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StacGestureDetectorParser._build(
+      context,
+      widget.model,
+      dragStart: _reset,
+      dragUpdate: _accumulate,
+      dragEnd: (details) => _settle(details, context),
+      dragCancel: () => _dx = 0,
     );
   }
 }

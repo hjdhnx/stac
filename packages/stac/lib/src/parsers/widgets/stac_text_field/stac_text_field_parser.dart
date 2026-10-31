@@ -14,6 +14,7 @@ import 'package:stac/src/parsers/foundation/text/stac_text_input_action_parser.d
 import 'package:stac/src/parsers/foundation/text/stac_text_input_type_parser.dart';
 import 'package:stac/src/parsers/foundation/text/stac_text_style_parser.dart';
 import 'package:stac/src/utils/action_debouncer.dart';
+import 'package:stac/src/utils/clear_button_decoration.dart';
 import 'package:stac/src/utils/color_utils.dart';
 import 'package:stac_core/stac_core.dart';
 import 'package:stac_framework/stac_framework.dart';
@@ -122,18 +123,10 @@ class _TextFieldWidgetState extends State<_TextFieldWidget> {
         widget.model.readOnly != true &&
         widget.model.enabled != false;
     if (!needsButton) return decoration;
-    return (decoration ?? const InputDecoration()).copyWith(
-      suffixIcon: ValueListenableBuilder<TextEditingValue>(
-        valueListenable: _controller,
-        builder: (context, value, _) {
-          if (value.text.isEmpty) return const SizedBox.shrink();
-          return IconButton(
-            icon: const Icon(Icons.clear, size: 18),
-            visualDensity: VisualDensity.compact,
-            onPressed: _clear,
-          );
-        },
-      ),
+    return applyClearButton(
+      decoration: decoration,
+      controller: _controller,
+      onClear: _clear,
     );
   }
 

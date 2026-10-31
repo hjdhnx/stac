@@ -197,6 +197,11 @@ StacGestureDetector _$StacGestureDetectorFromJson(
       : StacAction.fromJson(
           json['onHorizontalDragCancel'] as Map<String, dynamic>,
         ),
+  onSwipe: json['onSwipe'] == null
+      ? null
+      : StacAction.fromJson(json['onSwipe'] as Map<String, dynamic>),
+  swipeMinDistance: (json['swipeMinDistance'] as num?)?.toDouble(),
+  swipeMinVelocity: (json['swipeMinVelocity'] as num?)?.toDouble(),
   onForcePressStart: json['onForcePressStart'] == null
       ? null
       : StacAction.fromJson(json['onForcePressStart'] as Map<String, dynamic>),
@@ -292,6 +297,9 @@ Map<String, dynamic> _$StacGestureDetectorToJson(
   'onHorizontalDragUpdate': instance.onHorizontalDragUpdate?.toJson(),
   'onHorizontalDragEnd': instance.onHorizontalDragEnd?.toJson(),
   'onHorizontalDragCancel': instance.onHorizontalDragCancel?.toJson(),
+  'onSwipe': instance.onSwipe?.toJson(),
+  'swipeMinDistance': instance.swipeMinDistance,
+  'swipeMinVelocity': instance.swipeMinVelocity,
   'onForcePressStart': instance.onForcePressStart?.toJson(),
   'onForcePressPeak': instance.onForcePressPeak?.toJson(),
   'onForcePressUpdate': instance.onForcePressUpdate?.toJson(),
