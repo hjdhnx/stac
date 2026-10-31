@@ -42,6 +42,12 @@ class StacLazyGrid extends StacWidget {
     this.loadingMore,
     this.onEndReached,
     this.endReachedThreshold,
+    this.key,
+    this.initialScrollOffset,
+    this.scrollTo,
+    this.scrollToToken,
+    this.onScroll,
+    this.scrollThrottleMs,
   });
 
   final int? crossAxisCount;
@@ -87,6 +93,26 @@ class StacLazyGrid extends StacWidget {
   /// [onEndReached]. Defaults to 320.
   @DoubleConverter()
   final double? endReachedThreshold;
+
+  /// 滚动位置保持键（字符串，语义同 listView）。
+  final String? key;
+
+  /// 初始滚动偏移（逻辑像素）。
+  @DoubleConverter()
+  final double? initialScrollOffset;
+
+  /// 滚动到指定偏移：值变化时执行。
+  @DoubleConverter()
+  final double? scrollTo;
+
+  /// [scrollTo] 的重复触发令牌，语义同 listView。
+  final String? scrollToToken;
+
+  /// 滚动回调（通常 `js.call`），按 [scrollThrottleMs] 节流。
+  final StacAction? onScroll;
+
+  /// [onScroll] 的节流窗口（毫秒），默认 100。
+  final int? scrollThrottleMs;
 
   factory StacLazyGrid.fromJson(Map<String, dynamic> json) =>
       _$StacLazyGridFromJson(json);

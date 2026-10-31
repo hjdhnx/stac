@@ -23,6 +23,13 @@ StacListView _$StacListViewFromJson(Map<String, dynamic> json) => StacListView(
   addSemanticIndexes: json['addSemanticIndexes'] as bool?,
   cacheExtent: const DoubleConverter().fromJson(json['cacheExtent']),
   initialScrollOffset: const DoubleConverter().fromJson(json['initialScrollOffset']),
+  key: json['key'] as String?,
+  scrollTo: const DoubleConverter().fromJson(json['scrollTo']),
+  scrollToToken: json['scrollToToken'] as String?,
+  onScroll: json['onScroll'] == null
+      ? null
+      : StacAction.fromJson(json['onScroll'] as Map<String, dynamic>),
+  scrollThrottleMs: (json['scrollThrottleMs'] as num?)?.toInt(),
   children: (json['children'] as List<dynamic>?)
       ?.map((e) => StacWidget.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -55,6 +62,11 @@ Map<String, dynamic> _$StacListViewToJson(StacListView instance) =>
       'addSemanticIndexes': instance.addSemanticIndexes,
       'cacheExtent': const DoubleConverter().toJson(instance.cacheExtent),
       'initialScrollOffset': const DoubleConverter().toJson(instance.initialScrollOffset),
+      'key': instance.key,
+      'scrollTo': const DoubleConverter().toJson(instance.scrollTo),
+      'scrollToToken': instance.scrollToToken,
+      'onScroll': instance.onScroll?.toJson(),
+      'scrollThrottleMs': instance.scrollThrottleMs,
       'children': instance.children?.map((e) => e.toJson()).toList(),
       'separator': instance.separator?.toJson(),
       'semanticChildCount': instance.semanticChildCount,

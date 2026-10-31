@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:stac_core/core/converters/double_converter.dart';
+import 'package:stac_core/core/stac_action.dart';
 import 'package:stac_core/core/stac_widget.dart';
 import 'package:stac_core/foundation/foundation.dart';
 
@@ -56,6 +57,11 @@ class StacListView extends StacWidget {
     this.addSemanticIndexes,
     this.cacheExtent,
     this.initialScrollOffset,
+    this.key,
+    this.scrollTo,
+    this.scrollToToken,
+    this.onScroll,
+    this.scrollThrottleMs,
     this.children,
     this.separator,
     this.semanticChildCount,
@@ -105,6 +111,28 @@ class StacListView extends StacWidget {
   /// 滚进视口，否则选中项在屏幕外，用户看到的是「点了没勾上」。
   @DoubleConverter()
   final double? initialScrollOffset;
+
+  /// 滚动位置保持键（字符串）。
+  ///
+  /// 同 key 的列表在「子树被销毁后重建」（加载态↔内容态、结构切换）时，
+  /// 会通过 Flutter `PageStorage` 恢复上次的滚动偏移；无 key 则每次回顶。
+  final String? key;
+
+  /// 滚动到指定偏移（逻辑像素）：值变化时执行（超出上限自动钳制）。
+  @DoubleConverter()
+  final double? scrollTo;
+
+  /// [scrollTo] 的重复触发令牌：值变化即重新滚动，即使偏移没变
+  /// （回顶按钮连点、同一条指令反复下发都靠它）。
+  final String? scrollToToken;
+
+  /// 滚动回调（通常 `js.call`），按 [scrollThrottleMs] 节流。
+  ///
+  /// 派发时会保留动作原有的 `args`，并注入当前 `offset` / `max` / `viewport`。
+  final StacAction? onScroll;
+
+  /// [onScroll] 的节流窗口（毫秒），默认 100。
+  final int? scrollThrottleMs;
 
   /// The StacWidgets to display in the list.
   final List<StacWidget>? children;

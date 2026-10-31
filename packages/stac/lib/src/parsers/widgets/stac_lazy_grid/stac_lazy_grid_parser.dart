@@ -3,6 +3,7 @@ import 'package:stac/src/framework/framework.dart';
 import 'package:stac/src/parsers/core/stac_action_parser.dart';
 import 'package:stac/src/parsers/core/stac_widget_parser.dart';
 import 'package:stac/src/parsers/foundation/geometry/stac_edge_insets_parser.dart';
+import 'package:stac/src/utils/stac_scroll_host.dart';
 import 'package:stac/src/utils/template_binder.dart';
 import 'package:stac_core/stac_core.dart';
 import 'package:stac_framework/stac_framework.dart';
@@ -26,25 +27,40 @@ class StacLazyGridParser extends StacParser<StacLazyGrid> {
   Widget parse(BuildContext context, StacLazyGrid model) {
     final template = model.itemTemplate?.toJson();
     final rows = model.items ?? const <dynamic>[];
-    if (template == null || rows.isEmpty) {
-      // 空态也要保留 header/footer：筛选条在 header 里，否则用户无法切回有数据的分类。
-      return CustomScrollView(
-        slivers: [
-          if (model.header != null)
-            SliverToBoxAdapter(
-              child: model.header!.parse(context) ?? const SizedBox.shrink(),
-            ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: model.empty?.parse(context) ?? const SizedBox.shrink(),
-          ),
-        ],
-      );
-    }
-    return _LazyGridScroll(
-      model: model,
-      template: template,
-      rows: rows,
+    // 控制器、定位与上报统一由宿主持有（同 listView），位置保持靠 PageStorageKey。
+    return StacScrollHost(
+      storageKey: model.key,
+      initialOffset: model.initialScrollOffset,
+      scrollTo: model.scrollTo,
+      scrollToToken: model.scrollToToken,
+      onScroll: model.onScroll,
+      throttleMs: model.scrollThrottleMs,
+      builder: (c, controller) {
+        if (template == null || rows.isEmpty) {
+          // 空态也要保留 header/footer：筛选条在 header 里，否则用户无法切回有数据的分类。
+          return CustomScrollView(
+            key: StacScrollHost.storageKeyOf(model.key),
+            controller: controller,
+            slivers: [
+              if (model.header != null)
+                SliverToBoxAdapter(
+                  child:
+                      model.header!.parse(context) ?? const SizedBox.shrink(),
+                ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: model.empty?.parse(context) ?? const SizedBox.shrink(),
+              ),
+            ],
+          );
+        }
+        return _LazyGridScroll(
+          model: model,
+          template: template,
+          rows: rows,
+          controller: controller,
+        );
+      },
     );
   }
 }
@@ -54,29 +70,36 @@ class _LazyGridScroll extends StatefulWidget {
     required this.model,
     required this.template,
     required this.rows,
+    required this.controller,
   });
 
   final StacLazyGrid model;
   final Map<String, dynamic> template;
   final List<dynamic> rows;
 
+  /// 由 [StacScrollHost] 持有（跨帧存活、统一节流上报）。
+  final ScrollController controller;
+
   @override
   State<_LazyGridScroll> createState() => _LazyGridScrollState();
 }
 
 class _LazyGridScrollState extends State<_LazyGridScroll> {
-  final _controller = ScrollController();
   bool _armed = true;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(_onScroll);
+    widget.controller.addListener(_onScroll);
   }
 
   @override
   void didUpdateWidget(covariant _LazyGridScroll oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScroll);
+      widget.controller.addListener(_onScroll);
+    }
     // 新数据到达（条目数变化）后才允许再次触发，避免滚动抖动里连发。
     if (oldWidget.rows.length != widget.rows.length) _armed = true;
   }
@@ -84,8 +107,8 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
   void _onScroll() {
     final m = widget.model;
     if (!_armed || m.hasMore != true || m.loadingMore == true) return;
-    if (!_controller.hasClients) return;
-    final pos = _controller.position;
+    if (!widget.controller.hasClients) return;
+    final pos = widget.controller.position;
     final threshold = m.endReachedThreshold ?? 320;
     if (pos.pixels >= pos.maxScrollExtent - threshold) {
       _armed = false;
@@ -95,8 +118,7 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onScroll);
-    _controller.dispose();
+    widget.controller.removeListener(_onScroll);
     super.dispose();
   }
 
@@ -107,7 +129,8 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
     final rows = widget.rows;
 
     return CustomScrollView(
-      controller: _controller,
+      key: StacScrollHost.storageKeyOf(m.key),
+      controller: widget.controller,
       slivers: [
         if (m.header != null)
           SliverToBoxAdapter(

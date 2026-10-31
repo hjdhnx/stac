@@ -36,6 +36,16 @@ StacLazyGrid _$StacLazyGridFromJson(Map<String, dynamic> json) => StacLazyGrid(
   endReachedThreshold: const DoubleConverter().fromJson(
     json['endReachedThreshold'],
   ),
+  key: json['key'] as String?,
+  initialScrollOffset: const DoubleConverter().fromJson(
+    json['initialScrollOffset'],
+  ),
+  scrollTo: const DoubleConverter().fromJson(json['scrollTo']),
+  scrollToToken: json['scrollToToken'] as String?,
+  onScroll: json['onScroll'] == null
+      ? null
+      : StacAction.fromJson(json['onScroll'] as Map<String, dynamic>),
+  scrollThrottleMs: (json['scrollThrottleMs'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$StacLazyGridToJson(StacLazyGrid instance) =>
@@ -63,4 +73,12 @@ Map<String, dynamic> _$StacLazyGridToJson(StacLazyGrid instance) =>
       'endReachedThreshold': const DoubleConverter().toJson(
         instance.endReachedThreshold,
       ),
+      'key': instance.key,
+      'initialScrollOffset': const DoubleConverter().toJson(
+        instance.initialScrollOffset,
+      ),
+      'scrollTo': const DoubleConverter().toJson(instance.scrollTo),
+      'scrollToToken': instance.scrollToToken,
+      'onScroll': instance.onScroll?.toJson(),
+      'scrollThrottleMs': instance.scrollThrottleMs,
     };
