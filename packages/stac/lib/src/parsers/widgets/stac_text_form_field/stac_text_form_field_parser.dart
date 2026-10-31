@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:stac/src/parsers/core/stac_action_parser.dart';
 import 'package:stac/src/parsers/foundation/colors/stac_brightness_parser.dart';
 import 'package:stac/src/parsers/foundation/decoration/stac_input_decoration_parser.dart';
 import 'package:stac/src/parsers/foundation/forms/stac_autovalidate_mode_parser.dart';
@@ -14,6 +15,7 @@ import 'package:stac/src/parsers/foundation/text/stac_text_input_action_parser.d
 import 'package:stac/src/parsers/foundation/text/stac_text_input_type_parser.dart';
 import 'package:stac/src/parsers/foundation/text/stac_text_style_parser.dart';
 import 'package:stac/src/parsers/widgets/stac_form/stac_form_scope.dart';
+import 'package:stac/src/utils/action_debouncer.dart';
 import 'package:stac/src/utils/color_utils.dart';
 import 'package:stac/src/utils/input_validations.dart';
 import 'package:stac_core/stac_core.dart';
@@ -49,6 +51,7 @@ class _TextFormFieldWidget extends StatefulWidget {
 class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
   late final TextEditingController _controller;
   final _focusNode = FocusNode();
+  final ActionDebouncer _debouncer = ActionDebouncer();
   bool _obscureText = false;
 
   @override
@@ -83,10 +86,47 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
     final cur = widget.model.clearValue;
     if (cur != null && cur != _lastClearValue) {
       _lastClearValue = cur;
+      _debouncer.cancel();
       _controller.text = widget.model.initialValue ?? '';
       final id = widget.model.id;
       if (id != null) widget.formScope?.formData[id] = _controller.text;
     }
+  }
+
+  void _dispatch(StacAction? action) {
+    if (action == null || !mounted) return;
+    action.parse(context);
+  }
+
+  void _storeValue(String value) {
+    final id = widget.model.id;
+    if (id != null) widget.formScope?.formData[id] = value;
+  }
+
+  void _onChanged(String value) {
+    _storeValue(value);
+    final action = widget.model.onChanged;
+    if (action == null) return;
+    final debounce = widget.model.onChangedDebounce;
+    if (debounce != null && debounce > 0) {
+      _debouncer.schedule(debounce, () => _dispatch(widget.model.onChanged));
+    } else {
+      _dispatch(action);
+    }
+  }
+
+  void _onSubmitted(String value) {
+    // 提交前先落一次值：用户直接回车时 onChanged 可能被节流吞掉尾巴。
+    _storeValue(value);
+    _debouncer.cancel();
+    _dispatch(widget.model.onSubmitted);
+  }
+
+  void _clear() {
+    _debouncer.cancel();
+    _controller.clear();
+    _storeValue('');
+    _dispatch(widget.model.onChanged);
   }
 
   @override
@@ -94,11 +134,8 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
     return TextFormField(
       controller: _controller,
       focusNode: _focusNode,
-      onChanged: (value) {
-        if (widget.model.id != null) {
-          widget.formScope?.formData[widget.model.id!] = value;
-        }
-      },
+      onChanged: _onChanged,
+      onFieldSubmitted: _onSubmitted,
       keyboardType: widget.model.keyboardType?.parse,
       textInputAction: widget.model.textInputAction?.parse,
       textCapitalization:
@@ -131,7 +168,7 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
       cursorHeight: widget.model.cursorHeight,
       cursorColor: widget.model.cursorColor?.toColor(context),
       style: widget.model.style?.parse(context),
-      decoration: widget.model.decoration?.parse(context),
+      decoration: _decorationWithClearButton(context),
       inputFormatters: widget.model.inputFormatters
           ?.map(
             (inputFormatter) => inputFormatter.type.parse.format(
@@ -143,6 +180,27 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
       validator: (value) {
         return _validate(value, widget.model);
       },
+    );
+  }
+
+  InputDecoration? _decorationWithClearButton(BuildContext context) {
+    final decoration = widget.model.decoration?.parse(context);
+    final needsButton = widget.model.clearButton == true &&
+        widget.model.readOnly != true &&
+        widget.model.enabled != false;
+    if (!needsButton) return decoration;
+    return (decoration ?? const InputDecoration()).copyWith(
+      suffixIcon: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _controller,
+        builder: (context, value, _) {
+          if (value.text.isEmpty) return const SizedBox.shrink();
+          return IconButton(
+            icon: const Icon(Icons.clear, size: 18),
+            visualDensity: VisualDensity.compact,
+            onPressed: _clear,
+          );
+        },
+      ),
     );
   }
 
@@ -180,7 +238,9 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
 
   @override
   void dispose() {
+    _debouncer.dispose();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 }

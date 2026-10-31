@@ -81,6 +81,14 @@ StacTextFormField _$StacTextFormFieldFromJson(
   validatorRules: (json['validatorRules'] as List<dynamic>?)
       ?.map((e) => StacFormFieldValidator.fromJson(e as Map<String, dynamic>))
       .toList(),
+  onChanged: json['onChanged'] == null
+      ? null
+      : StacAction.fromJson(json['onChanged'] as Map<String, dynamic>),
+  onSubmitted: json['onSubmitted'] == null
+      ? null
+      : StacAction.fromJson(json['onSubmitted'] as Map<String, dynamic>),
+  onChangedDebounce: (json['onChangedDebounce'] as num?)?.toInt(),
+  clearButton: json['clearButton'] as bool?,
 );
 
 Map<String, dynamic> _$StacTextFormFieldToJson(
@@ -123,6 +131,10 @@ Map<String, dynamic> _$StacTextFormFieldToJson(
   'autovalidateMode': _$StacAutovalidateModeEnumMap[instance.autovalidateMode],
   'inputFormatters': instance.inputFormatters?.map((e) => e.toJson()).toList(),
   'validatorRules': instance.validatorRules?.map((e) => e.toJson()).toList(),
+  'onChanged': instance.onChanged?.toJson(),
+  'onSubmitted': instance.onSubmitted?.toJson(),
+  'onChangedDebounce': instance.onChangedDebounce,
+  'clearButton': instance.clearButton,
   'type': instance.type,
 };
 

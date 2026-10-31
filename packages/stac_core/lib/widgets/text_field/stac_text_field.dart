@@ -86,6 +86,8 @@ class StacTextField extends StacWidget {
     this.onChanged,
     this.onEditingComplete,
     this.onSubmitted,
+    this.onChangedDebounce,
+    this.clearButton,
   });
 
   /// Initial text to display in the field.
@@ -211,6 +213,17 @@ class StacTextField extends StacWidget {
   /// Called when the user indicates that they are done editing the text in the
   /// field submitted through the IME action.
   final StacAction? onSubmitted;
+
+  /// Throttle interval (ms) for [onChanged].
+  ///
+  /// `null` or `0` → dispatch on every keystroke (live search/filter);
+  /// `> 0` → trailing-edge debounce: dispatch once the user pauses.
+  final int? onChangedDebounce;
+
+  /// Show a clear (×) suffix button while the field is non-empty.
+  ///
+  /// Takes precedence over a user-supplied `decoration.suffixIcon`.
+  final bool? clearButton;
 
   /// Widget type identifier.
   ///

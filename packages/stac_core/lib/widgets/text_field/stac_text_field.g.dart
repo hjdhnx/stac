@@ -81,6 +81,8 @@ StacTextField _$StacTextFieldFromJson(
   onSubmitted: json['onSubmitted'] == null
       ? null
       : StacAction.fromJson(json['onSubmitted'] as Map<String, dynamic>),
+  onChangedDebounce: (json['onChangedDebounce'] as num?)?.toInt(),
+  clearButton: json['clearButton'] as bool?,
 );
 
 Map<String, dynamic> _$StacTextFieldToJson(StacTextField instance) =>
@@ -122,6 +124,8 @@ Map<String, dynamic> _$StacTextFieldToJson(StacTextField instance) =>
       'onChanged': instance.onChanged?.toJson(),
       'onEditingComplete': instance.onEditingComplete?.toJson(),
       'onSubmitted': instance.onSubmitted?.toJson(),
+      'onChangedDebounce': instance.onChangedDebounce,
+      'clearButton': instance.clearButton,
       'type': instance.type,
     };
 

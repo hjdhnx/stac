@@ -53,6 +53,7 @@ class StacSlider extends StacWidget {
     this.onChanged,
     this.onChangeStart,
     this.onChangeEnd,
+    this.debounce,
     this.min,
     this.max,
     this.divisions,
@@ -95,6 +96,16 @@ class StacSlider extends StacWidget {
   ///
   /// Type: [StacAction]
   final StacAction? onChangeEnd;
+
+  /// Throttle interval (ms) for [onChanged] while the user drags.
+  ///
+  /// - `null` (default): [onChanged] fires only once, on drag end
+  ///   ([onChangeEnd] if present, otherwise [onChanged]). The thumb follows a
+  ///   local value meanwhile, so no server round-trip can fight the drag.
+  /// - `0`: [onChanged] fires on every frame (legacy behavior).
+  /// - `> 0`: trailing-edge debounce: fires at most once per interval while
+  ///   dragging, plus a final dispatch on drag end.
+  final int? debounce;
 
   /// The minimum value the user can select.
   @DoubleConverter()

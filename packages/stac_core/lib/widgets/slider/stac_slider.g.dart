@@ -22,6 +22,7 @@ StacSlider _$StacSliderFromJson(Map<String, dynamic> json) => StacSlider(
   onChangeEnd: json['onChangeEnd'] == null
       ? null
       : StacAction.fromJson(json['onChangeEnd'] as Map<String, dynamic>),
+  debounce: (json['debounce'] as num?)?.toInt(),
   min: const DoubleConverter().fromJson(json['min']),
   max: const DoubleConverter().fromJson(json['max']),
   divisions: (json['divisions'] as num?)?.toInt(),
@@ -53,6 +54,7 @@ Map<String, dynamic> _$StacSliderToJson(StacSlider instance) =>
       'onChanged': instance.onChanged?.toJson(),
       'onChangeStart': instance.onChangeStart?.toJson(),
       'onChangeEnd': instance.onChangeEnd?.toJson(),
+      'debounce': instance.debounce,
       'min': const DoubleConverter().toJson(instance.min),
       'max': const DoubleConverter().toJson(instance.max),
       'divisions': instance.divisions,

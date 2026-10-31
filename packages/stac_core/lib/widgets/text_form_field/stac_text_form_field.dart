@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:stac_core/core/converters/double_converter.dart';
+import 'package:stac_core/core/stac_action.dart';
 import 'package:stac_core/core/stac_widget.dart';
 import 'package:stac_core/foundation/foundation.dart';
 
@@ -78,6 +79,10 @@ class StacTextFormField extends StacWidget {
     this.autovalidateMode,
     this.inputFormatters,
     this.validatorRules,
+    this.onChanged,
+    this.onSubmitted,
+    this.onChangedDebounce,
+    this.clearButton,
   });
 
   /// Identifier used by the form scope to store/read this field's value.
@@ -188,6 +193,29 @@ class StacTextFormField extends StacWidget {
 
   /// Declarative validation rules for the form field.
   final List<StacFormFieldValidator>? validatorRules;
+
+  /// Action invoked when the user edits the text.
+  ///
+  /// The current text is written to the form scope (keyed by [id]) *before*
+  /// dispatch, so an action declaring `formFields: [id]` receives it.
+  final StacAction? onChanged;
+
+  /// Action invoked when the user submits (IME action / focus done).
+  ///
+  /// The current text is written to the form scope before dispatch, same as
+  /// [onChanged].
+  final StacAction? onSubmitted;
+
+  /// Throttle interval (ms) for [onChanged].
+  ///
+  /// `null` or `0` → dispatch on every keystroke (live search/filter);
+  /// `> 0` → trailing-edge debounce: dispatch once the user pauses.
+  final int? onChangedDebounce;
+
+  /// Show a clear (×) suffix button while the field is non-empty.
+  ///
+  /// Takes precedence over a user-supplied `decoration.suffixIcon`.
+  final bool? clearButton;
 
   /// Widget type identifier.
   @override
