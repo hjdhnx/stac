@@ -45,6 +45,7 @@ class StacImageParser extends StacParser<StacImage> {
     } else {
       return Image.network(
         model.src,
+        cacheWidth: model.cacheWidth,
         alignment: model.alignment?.parse ?? Alignment.center,
         color: model.color?.toColor(context),
         width: model.width,
@@ -61,6 +62,7 @@ class StacImageParser extends StacParser<StacImage> {
     if (!model.src.endsWith(".svg")) {
       return Image.asset(
         model.src,
+        cacheWidth: model.cacheWidth,
         alignment: model.alignment?.parse ?? Alignment.center,
         color: model.color?.toColor(context),
         width: model.width,

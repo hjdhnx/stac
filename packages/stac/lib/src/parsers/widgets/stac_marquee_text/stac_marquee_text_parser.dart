@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/scheduler.dart' show Ticker, SchedulerBinding;
 import 'package:material_ui/material_ui.dart';
 import 'package:stac/src/parsers/foundation/text/stac_text_style_parser.dart';
 import 'package:stac_core/stac_core.dart';
@@ -12,6 +13,10 @@ import 'package:stac_framework/stac_framework.dart';
 /// 起点停 600ms → 匀速（默认 30px/s）滚到尾部 → 停 1200ms → 回到起点循环。
 class StacMarqueeTextParser extends StacParser<StacMarqueeText> {
   const StacMarqueeTextParser();
+
+  /// 测试接缝：清模块级「上次竖直滚动」（跨用例静态污染）。
+  static void debugResetScrollActivity() =>
+      _MarqueeTextState._debugResetScrollActivity();
 
   @override
   String get type => 'marqueeText';
@@ -59,21 +64,99 @@ class _MarqueeTextState extends State<_MarqueeText>
   static const Duration _startHold = Duration(milliseconds: 600);
   static const Duration _endHold = Duration(milliseconds: 1200);
 
+  /// C-06：竖直滚动后冻结相位的时间窗（毫秒）。
+  static const int _scrollFreezeMs = 300;
+
+  /// 上次竖直滚动活动（模块级：所有跑马灯共享同一次列表滚动）。
+  static int _lastScrollActivityMs = -100000;
+
+  /// 测试接缝：清模块级滚动活动（跨用例静态污染）。
+  static void _debugResetScrollActivity() {
+    _lastScrollActivityMs = -100000;
+  }
+
+  /// 宽度测量 LRU（text+style+scaler+maxWidth → 文本宽），上限 128。
+  static final Map<String, double> _measureLru = <String, double>{};
+  static const int _measureLruMax = 128;
+
   final ScrollController _scroll = ScrollController();
-  AnimationController? _controller;
+  Ticker? _ticker;
+  Duration _lastTick = Duration.zero;
+  double _pendingMs = 0;
+  double _clockMs = 0;
   double _distance = 0;
   double _textWidth = -1;
   double _measuredMaxWidth = -1;
   String _measuredData = '';
+  bool _visible = true;
+  ScrollPosition? _ancestorPos;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _bindAncestorScroll();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _bindAncestorScroll();
+  }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _ancestorPos?.removeListener(_onAncestorScroll);
+    _ticker?.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
+  /// 绑定最近的竖直祖先滚动（卡片所在列表），用于「滚动中静默」。
+  void _bindAncestorScroll() {
+    ScrollPosition? pos;
+    try {
+      pos = Scrollable.maybeOf(context)?.position;
+    } catch (_) {
+      pos = null;
+    }
+    if (identical(pos, _ancestorPos)) return;
+    _ancestorPos?.removeListener(_onAncestorScroll);
+    _ancestorPos = pos;
+    _ancestorPos?.addListener(_onAncestorScroll);
+  }
+
+  void _onAncestorScroll() {
+    _lastScrollActivityMs =
+        SchedulerBinding.instance.currentSystemFrameTimeStamp.inMilliseconds;
+    // 滚动结束/过程中都重估可见性（滚出视口停 ticker）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkVisible();
+    });
+  }
+
+  bool get _scrollFrozen {
+    // 负差值（时间戳回绕/测试重置）视为未冻结 —— 否则静态标记会把后续
+    // 帧永远卡在冻结态（widget 测试跨用例实锤）。
+    final diff =
+        SchedulerBinding.instance.currentSystemFrameTimeStamp.inMilliseconds -
+            _lastScrollActivityMs;
+    return diff >= 0 && diff < _scrollFreezeMs;
+  }
+
   void _measure(BuildContext context, TextStyle style, double maxWidth) {
+    final scaler = MediaQuery.textScalerOf(context).toString();
+    final key = '${widget.data}\u0000${style.toString()}\u0000$scaler\u0000$maxWidth';
+    final cached = _measureLru[key];
+    if (cached != null) {
+      _measureLru.remove(key);
+      _measureLru[key] = cached; // LRU 提升
+      _textWidth = cached;
+      _measuredMaxWidth = maxWidth;
+      _measuredData = widget.data;
+      return;
+    }
     final painter = TextPainter(
       text: TextSpan(text: widget.data, style: style),
       maxLines: widget.maxLines,
@@ -84,45 +167,84 @@ class _MarqueeTextState extends State<_MarqueeText>
     painter.dispose();
     _measuredMaxWidth = maxWidth;
     _measuredData = widget.data;
+    _measureLru[key] = _textWidth;
+    if (_measureLru.length > _measureLruMax) {
+      _measureLru.remove(_measureLru.keys.first);
+    }
   }
 
-  /// 单条循环：0 → 起点停留 → 匀速滚到尾部 → 尾部停留。
-  void _ensureController(double distance) {
-    if (_controller != null && (_distance - distance).abs() < 0.5) return;
-    _controller?.dispose();
-    _distance = distance;
-    final scrollMs = math.max(400, (distance / math.max(1, widget.speed) * 1000).round());
-    final totalMs = _startHold.inMilliseconds + scrollMs + _endHold.inMilliseconds;
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    )..addListener(_syncScroll);
-    _controller!.repeat();
-  }
+  double get _totalMs =>
+      _startHold.inMilliseconds + _scrollMs + _endHold.inMilliseconds;
 
-  void _syncScroll() {
-    final c = _controller;
-    if (c == null || !_scroll.hasClients) return;
-    final target = -_translateFor(c.value);
-    if ((_scroll.offset - target).abs() > 0.5) _scroll.jumpTo(target);
-  }
+  double get _scrollMs =>
+      math.max(400.0, _distance / math.max(1, widget.speed) * 1000);
 
-  double _translateFor(double value) {
-    final totalMs = _controller!.duration!.inMilliseconds.toDouble();
-    final t = value * totalMs;
+  /// 相位机：hold(600) → 匀速滚动 → 尾部 hold(1200) → 循环。
+  double _translateFor(double clockMs) {
+    final t = clockMs % _totalMs;
     final startMs = _startHold.inMilliseconds.toDouble();
-    final scrollMs =
-        math.max(1.0, totalMs - startMs - _endHold.inMilliseconds).toDouble();
+    final scrollMs = _scrollMs.toDouble();
     if (t <= startMs) return 0;
     if (t >= startMs + scrollMs) return -_distance;
     return -_distance * ((t - startMs) / scrollMs);
   }
 
+  void _startTicker() {
+    if (_ticker == null) {
+      _ticker = createTicker(_onTick);
+      _lastTick = Duration.zero;
+      _pendingMs = 0;
+      _clockMs = 0;
+    }
+    if (!_ticker!.isActive) {
+      _lastTick = Duration.zero;
+      _ticker!.start();
+    }
+  }
+
+  void _onTick(Duration elapsed) {
+    final dtMs = (elapsed - _lastTick).inMilliseconds.toDouble();
+    _lastTick = elapsed;
+    if (dtMs <= 0) return;
+    // C-06：竖直滚动 300ms 内冻结相位（指针还在滑，画面不动）
+    if (_scrollFrozen) {
+      _pendingMs = 0;
+      return;
+    }
+    // dt<33ms 累计，到阈值再一次性位移（30fps 上限，省小步重绘）
+    _pendingMs += dtMs;
+    if (_pendingMs < 33) return;
+    final step = _pendingMs;
+    _pendingMs = 0;
+    _clockMs += step;
+    if (!_scroll.hasClients) return;
+    final target = -_translateFor(_clockMs);
+    if ((_scroll.offset - target).abs() > 0.5) _scroll.jumpTo(target);
+  }
+
+  /// 视口可见性（ScrollEnd 后重估）：不可见停 ticker，恢复可见从头续滚。
+  void _checkVisible() {
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final topLeft = box.localToGlobal(Offset.zero);
+    final rect = topLeft & box.size;
+    final media = MediaQuery.maybeOf(context);
+    final screen = Offset.zero & (media?.size ?? box.size);
+    final visible = rect.overlaps(screen);
+    if (visible == _visible) return;
+    _visible = visible;
+    if (!_visible) {
+      _ticker?.stop();
+    } else {
+      _clockMs = 0;
+      _pendingMs = 0;
+      _startTicker();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final style = widget.style ?? DefaultTextStyle.of(context).style;
-    // ponytail: 没有 DsPlayer 的「滚动中静默 + 测量 LRU」。同屏滚动中的
-    // 卡片最多十几张，每张只重绘自己的 Transform 层；要做优化再补这两层。
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
@@ -135,7 +257,7 @@ class _MarqueeTextState extends State<_MarqueeText>
             maxWidth.isFinite &&
             _textWidth > maxWidth + 0.5;
         if (!needScroll) {
-          _controller?.stop();
+          _ticker?.stop();
           if (_scroll.hasClients) _scroll.jumpTo(0);
           return Text(
             widget.data,
@@ -145,25 +267,30 @@ class _MarqueeTextState extends State<_MarqueeText>
             softWrap: false,
           );
         }
-        _ensureController(_textWidth + widget.gap);
-        // 滚动容器用横向 ScrollView（禁掉手势）：它给子节点**无界宽度**且自带
-        // 裁剪，不会像 Row+OverflowBox 那样在有限宽/无界高约束下抛
-        // 「infinite size during layout」（真机实锤：整格空白 + 黄色溢出条）。
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const NeverScrollableScrollPhysics(),
-          controller: _scroll,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                widget.data,
-                style: style,
-                maxLines: widget.maxLines,
-                softWrap: false,
-              ),
-              SizedBox(width: widget.gap),
-            ],
+        _distance = _textWidth + widget.gap;
+        if (_visible) _startTicker();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _checkVisible();
+        });
+        // 自己的横向 jumpTo 通知就地吞掉，不冒泡喂祖先的触底闸门。
+        return NotificationListener<ScrollNotification>(
+          onNotification: (n) => true,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            controller: _scroll,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  widget.data,
+                  style: style,
+                  maxLines: widget.maxLines,
+                  softWrap: false,
+                ),
+                SizedBox(width: widget.gap),
+              ],
+            ),
           ),
         );
       },

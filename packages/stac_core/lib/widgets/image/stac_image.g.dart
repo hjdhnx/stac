@@ -24,6 +24,7 @@ StacImage _$StacImageFromJson(Map<String, dynamic> json) => StacImage(
   headers: (json['headers'] as Map<String, dynamic>?)?.map(
     (k, e) => MapEntry(k, e as String),
   ),
+  cacheWidth: (json['cacheWidth'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$StacImageToJson(StacImage instance) => <String, dynamic>{
@@ -39,6 +40,7 @@ Map<String, dynamic> _$StacImageToJson(StacImage instance) => <String, dynamic>{
   'semanticLabel': instance.semanticLabel,
   'excludeFromSemantics': instance.excludeFromSemantics,
   'headers': instance.headers,
+  'cacheWidth': instance.cacheWidth,
   'type': instance.type,
 };
 

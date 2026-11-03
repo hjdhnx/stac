@@ -56,6 +56,7 @@ class StacImageParser extends StacParser<StacImage> {
         height: model.height,
         fit: model.fit?.parse ?? BoxFit.contain,
         httpHeaders: headers,
+        memCacheWidth: model.cacheWidth,
         errorWidget: (context, error, stackTrace) {
           return const SizedBox();
         },
@@ -67,6 +68,7 @@ class StacImageParser extends StacParser<StacImage> {
     if (!model.src.contains(".svg")) {
       return Image.file(
         File(model.src),
+        cacheWidth: model.cacheWidth,
         alignment: model.alignment?.parse ?? Alignment.center,
         color: model.color?.toColor(context),
         width: model.width,
@@ -97,6 +99,7 @@ class StacImageParser extends StacParser<StacImage> {
     if (!model.src.endsWith(".svg")) {
       return Image.asset(
         model.src,
+        cacheWidth: model.cacheWidth,
         alignment: model.alignment?.parse ?? Alignment.center,
         color: model.color?.toColor(context),
         width: model.width,

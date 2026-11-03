@@ -48,6 +48,7 @@ class StacLazyGrid extends StacWidget {
     this.scrollToToken,
     this.onScroll,
     this.scrollThrottleMs,
+    this.cacheExtent,
   });
 
   final int? crossAxisCount;
@@ -113,6 +114,11 @@ class StacLazyGrid extends StacWidget {
 
   /// [onScroll] 的节流窗口（毫秒），默认 100。
   final int? scrollThrottleMs;
+
+  /// 预取范围（逻辑像素，C-04）：CustomScrollView.cacheExtent。
+  /// null = Flutter 默认（250）；长列表快滑给 600 减少加载空白。
+  @DoubleConverter()
+  final double? cacheExtent;
 
   factory StacLazyGrid.fromJson(Map<String, dynamic> json) =>
       _$StacLazyGridFromJson(json);

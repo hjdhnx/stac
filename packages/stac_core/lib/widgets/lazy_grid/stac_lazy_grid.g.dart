@@ -46,6 +46,7 @@ StacLazyGrid _$StacLazyGridFromJson(Map<String, dynamic> json) => StacLazyGrid(
       ? null
       : StacAction.fromJson(json['onScroll'] as Map<String, dynamic>),
   scrollThrottleMs: (json['scrollThrottleMs'] as num?)?.toInt(),
+  cacheExtent: const DoubleConverter().fromJson(json['cacheExtent']),
 );
 
 Map<String, dynamic> _$StacLazyGridToJson(StacLazyGrid instance) =>
@@ -81,4 +82,5 @@ Map<String, dynamic> _$StacLazyGridToJson(StacLazyGrid instance) =>
       'scrollToToken': instance.scrollToToken,
       'onScroll': instance.onScroll?.toJson(),
       'scrollThrottleMs': instance.scrollThrottleMs,
+      'cacheExtent': const DoubleConverter().toJson(instance.cacheExtent),
     };

@@ -1,3 +1,5 @@
+import 'dart:async' show Timer;
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:material_ui/material_ui.dart';
 import 'package:stac/src/framework/framework.dart';
 import 'package:stac/src/parsers/core/stac_action_parser.dart';
@@ -41,6 +43,9 @@ class StacLazyGridParser extends StacParser<StacLazyGrid> {
           return CustomScrollView(
             key: StacScrollHost.storageKeyOf(model.key),
             controller: controller,
+            scrollCacheExtent: model.cacheExtent == null
+                ? null
+                : ScrollCacheExtent.pixels(model.cacheExtent!),
             slivers: [
               if (model.header != null)
                 SliverToBoxAdapter(
@@ -87,6 +92,15 @@ class _LazyGridScroll extends StatefulWidget {
 class _LazyGridScrollState extends State<_LazyGridScroll> {
   bool _armed = true;
 
+  /// 触底**停稳**判定（PLAN-NEXT N10-03）：滚到底部后再等 300ms 没有新滚动
+  /// 才真的拉下一页。
+  ///
+  /// 为什么需要：飞滑到底时 `_onScroll` 会在同一帧内命中阈值，此时用户还在
+  /// 惯性滚动、离真正到底还有几百像素 —— 立刻发 onEndReached 会让后续帧
+  /// 继续越界（列表抖动 + 一次滑动连发多次请求）。DsPlayer `paged.dart:315`
+  /// 是同一做法（停稳 300ms 再触发）。
+  Timer? _settle;
+
   @override
   void initState() {
     super.initState();
@@ -110,14 +124,27 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
     if (!widget.controller.hasClients) return;
     final pos = widget.controller.position;
     final threshold = m.endReachedThreshold ?? 320;
-    if (pos.pixels >= pos.maxScrollExtent - threshold) {
+    if (pos.pixels < pos.maxScrollExtent - threshold) {
+      // 离开触底区：撤销待触发的停稳判定
+      _settle?.cancel();
+      _settle = null;
+      return;
+    }
+    // 触底：等 300ms 没有新滚动再触发（连续滚动会不断重置定时器）
+    _settle?.cancel();
+    _settle = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted || !_armed || m.hasMore != true || m.loadingMore == true) return;
+      if (!widget.controller.hasClients) return;
+      final p2 = widget.controller.position;
+      if (p2.pixels < p2.maxScrollExtent - threshold) return;
       _armed = false;
       m.onEndReached?.parse(context);
-    }
+    });
   }
 
   @override
   void dispose() {
+    _settle?.cancel();
     widget.controller.removeListener(_onScroll);
     super.dispose();
   }
@@ -131,6 +158,9 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
     return CustomScrollView(
       key: StacScrollHost.storageKeyOf(m.key),
       controller: widget.controller,
+      scrollCacheExtent: m.cacheExtent == null
+          ? null
+          : ScrollCacheExtent.pixels(m.cacheExtent!),
       slivers: [
         if (m.header != null)
           SliverToBoxAdapter(
@@ -150,7 +180,14 @@ class _LazyGridScrollState extends State<_LazyGridScroll> {
             itemBuilder: (context, index) {
               final row = rows[index];
               if (row is! Map) return const SizedBox.shrink();
-              final bound = applyDataToWidget(widget.template, row);
+              // 行序元数据（C-02 首卡抢焦）：模板可写 `"autofocus": "{{__first}}"`
+              // 让第一项拿焦点。注入是**副本**，不改调用方数据。
+              final data = <String, dynamic>{
+                for (final e in row.entries) '${e.key}': e.value,
+                '__index': index,
+                '__first': index == 0,
+              };
+              final bound = applyDataToWidget(widget.template, data);
               return Builder(
                 builder: (context) =>
                     Stac.fromJson(bound, context) ?? const SizedBox.shrink(),

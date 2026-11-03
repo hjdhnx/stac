@@ -50,6 +50,7 @@ class StacImage extends StacWidget {
     this.semanticLabel,
     this.excludeFromSemantics,
     this.headers,
+    this.cacheWidth,
   });
 
   /// Creates an image widget that loads from application assets.
@@ -65,6 +66,7 @@ class StacImage extends StacWidget {
     this.semanticLabel,
     this.excludeFromSemantics,
     this.headers,
+    this.cacheWidth,
   }) : src = path,
        imageType = StacImageType.asset;
 
@@ -81,6 +83,7 @@ class StacImage extends StacWidget {
     this.semanticLabel,
     this.excludeFromSemantics,
     this.headers,
+    this.cacheWidth,
   }) : src = url,
        imageType = StacImageType.network;
 
@@ -97,6 +100,7 @@ class StacImage extends StacWidget {
     this.semanticLabel,
     this.excludeFromSemantics,
     this.headers,
+    this.cacheWidth,
   }) : src = path,
        imageType = StacImageType.file;
 
@@ -140,6 +144,12 @@ class StacImage extends StacWidget {
   /// 由 JS 侧 `image()` 从 URL 尾缀 `@Referer=…@User-Agent=…` 剥出来后传入；
   /// 图片走 `CachedNetworkImage(httpHeaders:)`。空/null 表示不带额外头。
   final Map<String, String>? headers;
+
+  /// 解码宽度上限（物理像素；C-04 卡片封面用）。
+  ///
+  /// network → `CachedNetworkImage.memCacheWidth`，file/asset → `Image.*.cacheWidth`。
+  /// null = 按原图解码（老页面行为不变）。
+  final int? cacheWidth;
 
   @override
   String get type => WidgetType.image.name;
