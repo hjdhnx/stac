@@ -74,6 +74,19 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
 
     _controller = TextEditingController(text: resolvedText);
     _lastClearValue = widget.model.clearValue;
+    // D1-02：获焦全选（地址栏）。只在获焦那一次生效，之后用户自己点的
+    // 光标位置不覆盖。
+    if (widget.model.selectAllOnFocus == true) {
+      _focusNode.addListener(_selectAllOnFocus);
+    }
+  }
+
+  /// 获焦即全选。
+  void _selectAllOnFocus() {
+    if (!_focusNode.hasFocus || !mounted) return;
+    final text = _controller.text;
+    if (text.isEmpty) return;
+    _controller.selection = TextSelection(baseOffset: 0, extentOffset: text.length);
   }
 
   /// clearValue 重置令牌（DaoBox：聊天输入「发送后清空」/ 编辑器「切 tab
@@ -231,6 +244,9 @@ class _TextFormFieldWidgetState extends State<_TextFormFieldWidget> {
 
   @override
   void dispose() {
+    if (widget.model.selectAllOnFocus == true) {
+      _focusNode.removeListener(_selectAllOnFocus);
+    }
     _debouncer.dispose();
     _controller.dispose();
     _focusNode.dispose();

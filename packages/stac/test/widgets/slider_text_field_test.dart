@@ -333,6 +333,28 @@ void main() {
       expect(find.text('typed'), findsNothing);
     });
 
+    testWidgets('textFormField selectAllOnFocus：获焦全选（ui.textField 形态）',
+        (tester) async {
+      final json = textFormFieldJson(initialValue: 'https://b.example/addr');
+      json['selectAllOnFocus'] = true;
+      final page = ValueNotifier<Map<String, dynamic>>(json);
+      addTearDown(page.dispose);
+      await tester.pumpWidget(host(page));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pumpAndSettle();
+      final ctrl =
+          tester.widget<TextFormField>(find.byType(TextFormField)).controller!;
+      expect(ctrl.selection.baseOffset, 0);
+      expect(ctrl.selection.extentOffset, 'https://b.example/addr'.length);
+
+      // 失焦再获焦才重新全选；期间用户自己的光标不动
+      ctrl.selection = const TextSelection.collapsed(offset: 4);
+      await tester.pumpAndSettle();
+      expect(ctrl.selection.baseOffset, 4);
+    });
+
     testWidgets('selectAllOnFocus：获焦全选全文（地址栏）', (tester) async {
       final json = textFormFieldJson(
         type: 'textField',

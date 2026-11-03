@@ -57,6 +57,7 @@ class StacTextFormField extends StacWidget {
     this.readOnly,
     this.showCursor,
     this.autofocus,
+    this.selectAllOnFocus,
     this.obscuringCharacter,
     this.maxLines,
     this.minLines,
@@ -125,6 +126,12 @@ class StacTextFormField extends StacWidget {
 
   /// Whether to focus automatically.
   final bool? autofocus;
+
+  /// Whether gaining focus selects the whole text (D1-02).
+  ///
+  /// 地址栏这类「进来就整段改」的输入框要它：点一下直接全选，输入即覆盖。
+  /// 只在获焦时选一次，之后用户自己点的光标位置不覆盖。
+  final bool? selectAllOnFocus;
 
   /// Character used when [obscureText] is true.
   final String? obscuringCharacter;

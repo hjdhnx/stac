@@ -38,6 +38,7 @@ StacTextFormField _$StacTextFormFieldFromJson(
   readOnly: json['readOnly'] as bool?,
   showCursor: json['showCursor'] as bool?,
   autofocus: json['autofocus'] as bool?,
+  selectAllOnFocus: json['selectAllOnFocus'] as bool?,
   obscuringCharacter: json['obscuringCharacter'] as String?,
   maxLines: (json['maxLines'] as num?)?.toInt(),
   minLines: (json['minLines'] as num?)?.toInt(),
