@@ -62,6 +62,7 @@ class StacTextField extends StacWidget {
     this.readOnly,
     this.showCursor,
     this.autofocus,
+    this.selectAllOnFocus,
     this.obscuringCharacter,
     this.obscureText,
     this.autocorrect,
@@ -126,6 +127,13 @@ class StacTextField extends StacWidget {
   /// Whether this text field should focus itself if nothing else is already
   /// focused.
   final bool? autofocus;
+
+  /// Whether gaining focus selects the whole text (D1-02).
+  ///
+  /// 地址栏这类「进来就整段改」的输入框要它：用户点一下直接全选，
+  /// 输入即覆盖，不用手动拖选或长按全选。只在**获焦时**选一次 ——
+  /// 之后用户自己点的光标位置不覆盖。
+  final bool? selectAllOnFocus;
 
   /// Character used for obscuring text if [obscureText] is true.
   /// If null, Flutter's default obscuring character is used.

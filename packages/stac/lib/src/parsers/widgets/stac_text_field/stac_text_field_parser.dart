@@ -76,6 +76,19 @@ class _TextFieldWidgetState extends State<_TextFieldWidget> {
       _controller = TextEditingController(text: initialValue ?? '');
     }
     _focusNode = widget.focusNode ?? FocusNode();
+    // D1-02：获焦全选（地址栏）。只监听自己持有的焦点节点也一样安全：
+    // 外部传进来的 focusNode 同样能挂监听，dispose 时摘掉。
+    if (widget.model.selectAllOnFocus == true) {
+      _focusNode.addListener(_selectAllOnFocus);
+    }
+  }
+
+  /// 获焦即全选（只在 true→focus 那一次；失焦不动）。
+  void _selectAllOnFocus() {
+    if (!_focusNode.hasFocus || !mounted) return;
+    final text = _controller.text;
+    if (text.isEmpty) return;
+    _controller.selection = TextSelection(baseOffset: 0, extentOffset: text.length);
   }
 
   @override
@@ -178,6 +191,9 @@ class _TextFieldWidgetState extends State<_TextFieldWidget> {
 
   @override
   void dispose() {
+    if (widget.model.selectAllOnFocus == true) {
+      _focusNode.removeListener(_selectAllOnFocus);
+    }
     _debouncer.dispose();
     if (_ownsController) _controller.dispose();
     if (_ownsFocusNode) _focusNode.dispose();

@@ -332,5 +332,32 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('typed'), findsNothing);
     });
+
+    testWidgets('selectAllOnFocus：获焦全选全文（地址栏）', (tester) async {
+      final json = textFormFieldJson(
+        type: 'textField',
+        initialValue: 'https://a.example/path',
+      );
+      json['selectAllOnFocus'] = true;
+      final page = ValueNotifier<Map<String, dynamic>>(json);
+      addTearDown(page.dispose);
+      await tester.pumpWidget(host(page));
+      await tester.pumpAndSettle();
+
+      // 未获焦时不动选择区
+      expect(tester.widget<TextField>(find.byType(TextField)).controller!.selection.isValid,
+          isFalse);
+
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      final ctrl = tester.widget<TextField>(find.byType(TextField)).controller!;
+      expect(ctrl.selection.baseOffset, 0);
+      expect(ctrl.selection.extentOffset, 'https://a.example/path'.length);
+
+      // 用户自己点回去改字：光标位置不被强行重置
+      ctrl.selection = const TextSelection.collapsed(offset: 3);
+      await tester.pumpAndSettle();
+      expect(ctrl.selection.baseOffset, 3);
+    });
   });
 }
